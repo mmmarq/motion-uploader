@@ -105,10 +105,27 @@ class MotionUploader:
         files = self.drive_service.files().list(q="title='%s' and mimeType contains 'application/vnd.google-apps.folder' and trashed=false" % folder_name).execute()
         if len(files['items']) == 1:
             folder_id = files['items'][0]['id']
-            return folder_id
+            return self._create_date_folder(folder_id)
         else:
             raise Exception('Could not find the %s folder' % folder_name)
-    
+
+    def _create_date_folder(self, parentID = None):
+        # Create a folder on Drive, returns the newely created folders ID
+        new_folder_name = datetime.strftime(datetime.now(), '%Y-%m-%d')
+        files = self.drive_service.files().list(q="title='%s' and mimeType contains 'application/vnd.google-apps.folder' and trashed=false" % new_folder_name).execute()
+        if len(files['items']) > 0:
+            folder_id = files['items'][0]['id']
+            return folder_id
+        else:
+            body = {
+                'title': new_folder_name,
+                'mimeType': "application/vnd.google-apps.folder"
+            }
+            if parentID:
+                body['parents'] = [{'id': parentID}]
+            root_folder = self.drive_service.files().insert(body = body).execute()
+            return root_folder['id']
+
     def _send_email(self,msg):
         '''Send an email using the GMail account.'''
         senddate=datetime.strftime(datetime.now(), '%Y-%m-%d')
